@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Peak" />
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Peak — 30 Dias</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -891,6 +892,91 @@
         }
       }
 
+      /* ── Quote do dia ─────────────────────────────────────── */
+      .quote-card {
+        background: var(--s1);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 16px 20px;
+      }
+      .quote-text {
+        font-size: 13px;
+        font-style: italic;
+        color: var(--text-2);
+        line-height: 1.65;
+        margin-bottom: 10px;
+      }
+      .quote-author {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+
+      /* ── Ranking ──────────────────────────────────────────── */
+      .rank-card {
+        background: var(--s1);
+        border: 1px solid var(--border-md);
+        border-radius: var(--r);
+        overflow: hidden;
+      }
+      .rank-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .rank-row:last-child { border-bottom: none; }
+      .rank-row.leading { background: rgba(0, 220, 130, 0.035); }
+      .rank-pos {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-4);
+        width: 22px;
+        flex-shrink: 0;
+        text-align: center;
+      }
+      .rank-pos.first { color: var(--green); }
+      .rank-info { flex: 1; min-width: 0; }
+      .rank-name {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        margin-bottom: 4px;
+      }
+      .you-badge {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--green);
+        background: var(--green-s);
+        padding: 2px 5px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: 7px;
+        vertical-align: middle;
+      }
+      .rank-meta { display: flex; gap: 10px; font-size: 11px; }
+      .rm-g { color: var(--green); font-weight: 600; }
+      .rm-a { color: var(--amber); font-weight: 600; }
+      .rm-n { color: var(--text-3); }
+      .rank-score {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -1.5px;
+        color: var(--text);
+        flex-shrink: 0;
+      }
+      .rank-score span {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-3);
+        letter-spacing: 0;
+        margin-left: 2px;
+      }
+
       /* ── Responsive ──────────────────────────────── */
       @media (max-width: 360px) {
         .cal {
@@ -941,6 +1027,12 @@
             <div class="cdw-fill" id="cdwFill" style="width: 0%"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ── Quote do dia ──────────────────────────────────────── -->
+      <div class="quote-card mb" id="quoteCard">
+        <div class="quote-text" id="quoteText">—</div>
+        <div class="quote-author" id="quoteAuthor"></div>
       </div>
 
       <!-- ── Today ──────────────────────────────────────────────── -->
@@ -1113,6 +1205,12 @@
         </div>
       </div>
 
+      <!-- ── Ranking ────────────────────────────────────────────── -->
+      <div class="sec-lbl">Duelo</div>
+      <div class="rank-card mb" id="rankCard">
+        <!-- preenchido por renderRanking() -->
+      </div>
+
       <!-- ── Calendar ───────────────────────────────────────────── -->
       <div class="sec-lbl">Calendario — 30 Dias</div>
       <div class="legend">
@@ -1261,18 +1359,19 @@
         collection,
         doc,
         setDoc,
+        getDocs,
         onSnapshot,
         serverTimestamp,
       } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
       /* ── Firebase ──────────────────────────────────────────── */
       const firebaseConfig = {
-        apiKey:            'AIzaSyA-d6XztE140JLZ3VrKiANaBtqvC6ky15g',
-      authDomain:        'personal-e6f61.firebaseapp.com',
-      projectId:         'personal-e6f61',
-      storageBucket:     'personal-e6f61.firebasestorage.app',
-      messagingSenderId: '124938973761',
-      appId:             '1:124938973761:web:4c4cee2f2d55e9be7eccc0',
+        apiKey: "AIzaSyCQAp_eIn27MEmSJMw4t8jrcOc13t6ou2I",
+    authDomain: "peak-e1e59.firebaseapp.com",
+    projectId: "peak-e1e59",
+    storageBucket: "peak-e1e59.firebasestorage.app",
+    messagingSenderId: "535257642877",
+    appId: "1:535257642877:web:3893feefedbf2dd7bb7e14",
       };
 
       const fbApp = initializeApp(firebaseConfig);
@@ -1288,8 +1387,14 @@
       const SG = 7; // Sleep goal (h)
       const WG = 3; // Water goal (L)
 
+      const USER_ID = "diogo";
+  const MY_NAME = "Diogo";
+  const OPPONENT_ID = "felipe";
+  const OPPONENT_NAME = "Felipe";
+
       /* ── State ─────────────────────────────────────────────── */
       const allDays = {}; // { 'YYYY-MM-DD': record }
+      const opponentDays = {};
       let mainSober = false;
       let mainCreat = false;
       let modalSober = false;
@@ -1371,7 +1476,7 @@
       window.addEventListener("offline", () => setSyncStatus("offline"));
 
       /* ── Firebase listener ─────────────────────────────────── */
-      const cRef = collection(fsdb, "peak30");
+      const cRef = collection(fsdb, "users", USER_ID, "peak30");
 
       onSnapshot(
         cRef,
@@ -1496,7 +1601,7 @@
         render();
 
         try {
-          await setDoc(doc(fsdb, "peak30", key), {
+          await setDoc(doc(fsdb, "users", USER_ID, "peak30", key), {
             ...record,
             savedAt: serverTimestamp(),
           });
@@ -1812,6 +1917,97 @@
         }
       }
 
+      /* ── Scoring ────────────────────────────────────────────── */
+      function dayScore(r) {
+        if (!r || !r.saved) return 0;
+        if (isWin(r)) return 3;
+        if (isPartial(r)) return 1;
+        return 0;
+      }
+
+      function calcStats(days) {
+        const t = today();
+        const todK = toKey(t);
+        let score = 0, greens = 0, ambers = 0, streak = 0, streakBroken = false;
+
+        for (let i = 0; i < N; i++) {
+          const d = addDays(START, i);
+          if (d > t) break;
+          const r = days[toKey(d)];
+          score += dayScore(r);
+          if (isWin(r)) greens++;
+          else if (isPartial(r)) ambers++;
+        }
+
+        for (let i = Math.min(N - 1, dayIdx(t)); i >= 0; i--) {
+          const key = toKey(addDays(START, i));
+          const r = days[key];
+          if (key === todK && (!r || !r.saved)) continue;
+          if (!streakBroken) {
+            if (isWin(r)) streak++;
+            else streakBroken = true;
+          }
+        }
+
+        return { score, greens, ambers, streak };
+      }
+
+      /* ── Ranking render ─────────────────────────────────────── */
+      function renderRanking() {
+        const players = [
+          { name: MY_NAME, isMe: true, stats: calcStats(allDays) },
+          { name: OPPONENT_NAME, isMe: false, stats: calcStats(opponentDays) },
+        ].sort((a, b) => b.stats.score - a.stats.score || b.stats.greens - a.stats.greens);
+
+        $("rankCard").innerHTML = players
+          .map((p, i) => {
+            const isFirst = i === 0;
+            return `
+              <div class="rank-row${isFirst ? " leading" : ""}">
+                <div class="rank-pos${isFirst ? " first" : ""}">${i + 1}</div>
+                <div class="rank-info">
+                  <div class="rank-name">${p.name}${p.isMe ? '<span class="you-badge">você</span>' : ""}</div>
+                  <div class="rank-meta">
+                    <span class="rm-g">${p.stats.greens} perf.</span>
+                    <span class="rm-a">${p.stats.ambers} parc.</span>
+                    <span class="rm-n">🔥 ${p.stats.streak}</span>
+                  </div>
+                </div>
+                <div class="rank-score">${p.stats.score}<span>pts</span></div>
+              </div>`;
+          })
+          .join("");
+      }
+
+      /* ── Opponent data fetch ─────────────────────────────────── */
+      async function loadOpponentData() {
+        try {
+          const snap = await getDocs(
+            collection(fsdb, "users", OPPONENT_ID, "peak30"),
+          );
+          snap.forEach((d) => {
+            opponentDays[d.id] = d.data();
+          });
+          renderRanking();
+        } catch (e) {
+          console.warn("Opponent data unavailable:", e);
+        }
+      }
+
+      /* ── Quote do dia ────────────────────────────────────────── */
+      async function renderQuote() {
+        try {
+          const res = await fetch("/quotes.json");
+          const quotes = await res.json();
+          const idx = Math.max(0, Math.min(dayIdx(today()), N - 1));
+          const q = quotes[idx % quotes.length];
+          $("quoteText").textContent = `"${q.quote}"`;
+          $("quoteAuthor").textContent = `— ${q.author}`;
+        } catch (e) {
+          // decorativa — falha silenciosa
+        }
+      }
+
       /* ── Main render ───────────────────────────────────────── */
       function render() {
         renderCountdown();
@@ -1819,6 +2015,7 @@
         refreshTodayWin();
         renderWeekly();
         renderStats();
+        renderRanking();
         renderCal();
       }
 
@@ -1936,6 +2133,8 @@
 
       /* ── Initial render ────────────────────────────────────── */
       render();
+      loadOpponentData();
+      renderQuote();
     </script>
   </body>
 </html>
